@@ -15,6 +15,12 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
      */
     private $logfile;
 
+    /**
+     * @var \SimpleLog\Logger
+     */
+    private $logger;
+
+
     const TEST_CHANNEL      = 'unittest';
     const TEST_MESSAGE      = 'Log message goes here.';
 
@@ -49,7 +55,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * Clean up test by removing temporary log file.
-     * @return [type] [description]
+     * @return void
      */
     public function tearDown()
     {
@@ -76,6 +82,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase Constructor sets expected properties.
+     * @throws \ReflectionException
      */
     public function testConstructorSetsProperties()
     {
@@ -100,8 +107,10 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
      * @dataProvider dataProviderForSetLogLevel
      * @param string $log_level
      * @param int    $log_level_code
+     *
+     * @throws \ReflectionException
      */
-    public function testSetLogLevelUsingConstants(string $log_level, int $log_level_code)
+    public function testSetLogLevelUsingConstants($log_level, $log_level_code)
     {
         $this->logger->setLogLevel($log_level);
 
@@ -139,9 +148,12 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
     /**
      * @testCase     setChannel sets the channel property.
      * @dataProvider dataProviderForSetChannel
+     *
      * @param        string $channel
+     *
+     * @throws \ReflectionException
      */
-    public function testSetChannel(string $channel)
+    public function testSetChannel($channel)
     {
         $channel_property = new \ReflectionProperty(Logger::class, 'channel');
         $channel_property->setAccessible(true);
@@ -162,8 +174,9 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
      * @testCase     setOutput sets the stdout property.
      * @dataProvider dataProviderForSetOutput
      * @param        bool $output
+     * @throws \ReflectionException
      */
-    public function testSetOutput(bool $output)
+    public function testSetOutput($output)
     {
         $stdout_property = new \ReflectionProperty(Logger::class, 'stdout');
         $stdout_property->setAccessible(true);
@@ -172,6 +185,9 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($output, $stdout_property->getValue($this->logger));
     }
 
+    /**
+     * @return array
+     */
     public function dataProviderForSetOutput()
     {
         return [
@@ -183,9 +199,9 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
     /**
      * @testCase     Logger creates properly formatted log lines with the right log level.
      * @dataProvider dataProviderForLogging
-     * @param        $log_level
+     * @param string $logLevel
      */
-    public function testLogging(string $logLevel)
+    public function testLogging($logLevel)
     {
         $this->logger->$logLevel(self::TEST_MESSAGE);
         $log_line = trim(file_get_contents($this->logfile));
@@ -209,6 +225,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase Data context array shows up as a JSON string.
+     * @throws \Exception
      */
     public function testDataContext()
     {
@@ -219,6 +236,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase Logging an exception
+     * @throws \Exception
      */
     public function testExceptionTextWhenLoggingErrorWithExceptionData()
     {
@@ -238,6 +256,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase Log lines will be on a single line even if there are newline characters in the log message.
+     * @throws \Exception
      */
     public function testLogMessageIsOneLineEvenThoughItHasNewLineCharacters()
     {
@@ -248,6 +267,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase Log lines will be on a single line even if there are newline characters in the log message.
+     * @throws \Exception
      */
     public function testLogMessageIsOneLineEvenThoughItHasNewLineCharactersInData()
     {
@@ -258,6 +278,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase Log lines will be on a single line even if there are newline characters in the exception.
+     * @throws \Exception
      */
     public function testLogMessageIsOneLineEvenThoughItHasNewLineCharactersInException()
     {
@@ -268,6 +289,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase Minimum log levels determine what log levels get logged.
+     * @throws \Exception
      */
     public function testMinimumLogLevels()
     {
@@ -289,6 +311,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase Minimum log levels determine what log levels get logged.
+     * @throws \Exception
      */
     public function testMinimumLogLevelsByCheckingFileExists()
     {
@@ -306,6 +329,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase Exception is thrown if the log file cannot be opened for appending.
+     * @throws \Exception
      */
     public function testLogExceptionCannotOpenFileForWriting()
     {
@@ -316,6 +340,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @testCase After setting output to true the logger will output log lines to STDOUT.
+     * @throws \Exception
      */
     public function testLoggingToStdOut()
     {
@@ -323,9 +348,10 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
         $this->expectOutputRegEx('/^\d{4}-\d{2}-\d{2} [ ] \d{2}:\d{2}:\d{2}[.]\d{6} \s \[\w+\] \s \[\w+\] \s \[pid:\d+\] \s Test Message \s {.*} \s {.*}/x');
         $this->logger->info('TestMessage');
     }
- 
+
     /**
      * @testCase Time should be in YYYY-MM-DD HH:mm:SS.uuuuuu format.
+     * @throws \ReflectionException
      */
     public function testGetTime()
     {

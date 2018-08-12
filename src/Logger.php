@@ -72,7 +72,7 @@ class Logger implements \Psr\Log\LoggerInterface
     /**
      * Log level hierachy
      */
-    const LEVELS    = [
+    const LEVELS = [
         self::LOG_LEVEL_NONE => -1,
         LogLevel::DEBUG      => 0,
         LogLevel::INFO       => 1,
@@ -89,13 +89,13 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $log_file  File name and path of log file.
      * @param string $channel   Logger channel associated with this logger.
-     * @param int    $log_level (optional) Lowest log level to log.
+     * @param string $log_level (optional) Lowest log level to log.
      */
-    public function __construct(string $log_file, string $channel, string $log_level = LogLevel::DEBUG)
+    public function __construct($log_file, $channel, $log_level = LogLevel::DEBUG)
     {
-        $this->log_file  = $log_file;
-        $this->channel   = $channel;
-        $this->stdout    = false;
+        $this->log_file = $log_file;
+        $this->channel = $channel;
+        $this->stdout = false;
         $this->setLogLevel($log_level);
     }
 
@@ -104,7 +104,7 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $log_level
      */
-    public function setLogLevel(string $log_level)
+    public function setLogLevel($log_level)
     {
         if (!array_key_exists($log_level, self::LEVELS)) {
             throw new \DomainException("Log level $log_level is not a valid log level. Must be one of (" . implode(', ', array_keys(self::LEVELS)) . ')');
@@ -118,7 +118,7 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $channel
      */
-    public function setChannel(string $channel)
+    public function setChannel($channel)
     {
         $this->channel = $channel;
     }
@@ -129,7 +129,7 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param bool $stdout
      */
-    public function setOutput(bool $stdout)
+    public function setOutput($stdout)
     {
         $this->stdout = $stdout;
     }
@@ -140,6 +140,8 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
+     *
+     * @throws \Exception
      */
     public function debug($message = '', array $data = null)
     {
@@ -154,6 +156,8 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
+     *
+     * @throws \Exception
      */
     public function info($message = '', array $data = null)
     {
@@ -168,6 +172,8 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
+     *
+     * @throws \Exception
      */
     public function notice($message = '', array $data = null)
     {
@@ -183,6 +189,8 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
+     *
+     * @throws \Exception
      */
     public function warning($message = '', array $data = null)
     {
@@ -198,6 +206,8 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
+     *
+     * @throws \Exception
      */
     public function error($message = '', array $data = null)
     {
@@ -212,6 +222,8 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
+     *
+     * @throws \Exception
      */
     public function critical($message = '', array $data = null)
     {
@@ -227,6 +239,8 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
+     *
+     * @throws \Exception
      */
     public function alert($message = '', array $data = null)
     {
@@ -242,6 +256,8 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
+     *
+     * @throws \Exception
      */
     public function emergency($message = '', array $data = null)
     {
@@ -254,25 +270,24 @@ class Logger implements \Psr\Log\LoggerInterface
      * Log a message.
      * Generic log routine that all severity levels use to log an event.
      *
+     * @param string $level
      * @param string $message Content of log event.
-     * @param array  $data Potentially multidimensional associative array of support data that goes with the log event.
-     * @param array  $debug_trace Debug trace data (if exception is null).
+     * @param array  $data    Potentially multidimensional associative array of support data that goes with the log event.
      *
-     * @throws \Exception when log file cannot be opened for writing.
      */
     public function log($level, $message = '', array $data = null)
     {
         try {
             // Build log line
-            $time                   = $this->getTime();
-            $pid                    = getmypid();
+            $time = $this->getTime();
+            $pid = getmypid();
             list($exception, $data) = $this->handleException($data);
-            $data                   = $data ? json_encode($data, \JSON_UNESCAPED_SLASHES) : '{}';
-            $log_line               = $this->formatLogLine($level, $pid, $message, $data, $exception);
+            $dataString = $data ? json_encode($data, \JSON_UNESCAPED_SLASHES) : '{}';
+            $log_line = $this->formatLogLine($level, $pid, $message, $dataString, $exception);
 
             // Log to file
             $fh = fopen($this->log_file, 'a');
-            fputs($fh, $log_line);
+            fwrite($fh, $log_line);
             fclose($fh);
 
             // Log to stdout if option set to do so.
@@ -291,7 +306,7 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @return bool   True if we log at this level; false otherwise.
      */
-    private function logAtThisLevel($level): bool
+    private function logAtThisLevel($level)
     {
         return self::LEVELS[$level] >= $this->log_level;
     }
@@ -300,14 +315,14 @@ class Logger implements \Psr\Log\LoggerInterface
      * Handle an exception in the data context array.
      * If an exception is included in the data context array, extract it.
      *
-     * @param  array  $data
+     * @param  array $data
      *
      * @return array  [exception, data (without exception)]
      */
-    private function handleException(array $data = null): array
+    private function handleException(array $data = null)
     {
         if (isset($data['exception']) && $data['exception'] instanceof \Throwable) {
-            $exception      = $data['exception'];
+            $exception = $data['exception'];
             $exception_data = $this->buildExceptionData($exception);
             unset($data['exception']);
         } else {
@@ -324,7 +339,7 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @return string JSON {message, code, file, line, trace}
      */
-    private function buildExceptionData(\Throwable $e): string
+    private function buildExceptionData(\Throwable $e)
     {
         return json_encode(
             [
@@ -350,15 +365,15 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @return string
      */
-    private function formatLogLine(string $level, int $pid, string $message, string $data, string $exception_data): string
+    private function formatLogLine($level, $pid, $message, $data, $exception_data)
     {
         return
-            $this->getTime()                              . self::TAB .
-            "[$level]"                                    . self::TAB .
-            "[{$this->channel}]"                          . self::TAB .
-            "[pid:$pid]"                                  . self::TAB .
-            str_replace(\PHP_EOL, '   ', trim($message))  . self::TAB .
-            str_replace(\PHP_EOL, '   ', $data)           . self::TAB .
+            $this->getTime() . self::TAB .
+            "[$level]" . self::TAB .
+            "[{$this->channel}]" . self::TAB .
+            "[pid:$pid]" . self::TAB .
+            str_replace(\PHP_EOL, '   ', trim($message)) . self::TAB .
+            str_replace(\PHP_EOL, '   ', $data) . self::TAB .
             str_replace(\PHP_EOL, '   ', $exception_data) . \PHP_EOL;
     }
 
@@ -369,11 +384,11 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @return string Date time
      */
-    private function getTime(): string
+    private function getTime()
     {
-        $microtime          = microtime(true);
-        $microtime_formated = sprintf("%06d", ($microtime - floor($microtime) ) * 1000000);
-        $dt                 = new \DateTime(date('Y-m-d H:i:s.'.$microtime_formated, $microtime));
+        $microtime = microtime(true);
+        $microtime_formated = sprintf("%06d", ($microtime - floor($microtime)) * 1000000);
+        $dt = new \DateTime(date('Y-m-d H:i:s.' . $microtime_formated, $microtime));
 
         return $dt->format('Y-m-d H:i:s.u');
     }

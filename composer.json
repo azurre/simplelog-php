@@ -1,15 +1,14 @@
 {
-  "name": "markrogoyski/simplelog-php",
+  "name": "azurre/php-simple-logger",
   "type": "library",
   "description": "Powerful PSR-3 logging. So easy, it's simple.",
   "keywords": ["log", "logging", "psr-3", "logger"],
   "homepage": "https://github.com/markrogoyski/simplelog-php/",
   "require": {
-    "php": ">=7.0.0",
     "psr/log": "1.0.*"
   },
   "require-dev": {
-      "satooshi/php-coveralls": "dev-master",
+      "satooshi/php-coveralls": "^2.0",
       "squizlabs/php_codesniffer": "2.*"
   },
   "autoload": {
