@@ -28,10 +28,10 @@ Setup
 
  Add the library to your `composer.json` file in your project:
 
-```javascript
+```json
 {
   "require": {
-      "markrogoyski/simplelog-php": "0.*"
+      "azurre/simplelog-php": "0.*"
   }
 }
 ```
@@ -48,9 +48,6 @@ Composer will install SimpleLog inside your vendor folder. Then you can add the 
 ```php
 require_once(__DIR__ . '/vendor/autoload.php');
 ```
-
-### Minimum Requirements
- * PHP 7
 
 Usage
 -----
