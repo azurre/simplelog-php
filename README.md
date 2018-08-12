@@ -26,20 +26,8 @@ Features
 Setup
 -----
 
- Add the library to your `composer.json` file in your project:
-
-```json
-{
-  "require": {
-      "azurre/simplelog-php": "0.*"
-  }
-}
-```
-
-Use [composer](http://getcomposer.org) to install the library:
-
 ```bash
-$ php composer.phar install
+$ composer require azurre/php-simple-logger
 ```
 
 Composer will install SimpleLog inside your vendor folder. Then you can add the following to your
