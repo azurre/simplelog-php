@@ -3,7 +3,7 @@
   "type": "library",
   "description": "Powerful PSR-3 logging. So easy, it's simple.",
   "keywords": ["log", "logging", "psr-3", "logger"],
-  "homepage": "https://github.com/markrogoyski/simplelog-php/",
+  "homepage": "https://github.com/azurre/simplelog-php",
   "require": {
     "psr/log": "1.0.*"
   },

@@ -72,7 +72,7 @@ class Logger implements \Psr\Log\LoggerInterface
     /**
      * Log level hierachy
      */
-    const LEVELS = [
+    protected static $levels = [
         self::LOG_LEVEL_NONE => -1,
         LogLevel::DEBUG      => 0,
         LogLevel::INFO       => 1,
@@ -106,11 +106,11 @@ class Logger implements \Psr\Log\LoggerInterface
      */
     public function setLogLevel($log_level)
     {
-        if (!array_key_exists($log_level, self::LEVELS)) {
-            throw new \DomainException("Log level $log_level is not a valid log level. Must be one of (" . implode(', ', array_keys(self::LEVELS)) . ')');
+        if (!array_key_exists($log_level, self::$levels)) {
+            throw new \DomainException("Log level $log_level is not a valid log level. Must be one of (" . implode(', ', array_keys(self::$levels)) . ')');
         }
 
-        $this->log_level = self::LEVELS[$log_level];
+        $this->log_level = self::$levels[$log_level];
     }
 
     /**
@@ -156,8 +156,6 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
-     *
-     * @throws \Exception
      */
     public function info($message = '', array $data = null)
     {
@@ -206,8 +204,6 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
-     *
-     * @throws \Exception
      */
     public function error($message = '', array $data = null)
     {
@@ -308,7 +304,7 @@ class Logger implements \Psr\Log\LoggerInterface
      */
     private function logAtThisLevel($level)
     {
-        return self::LEVELS[$level] >= $this->log_level;
+        return self::$levels[$level] >= $this->log_level;
     }
 
     /**
