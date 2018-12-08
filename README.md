@@ -28,8 +28,8 @@ Usage
 
 ### Simple 20-Second Getting-Started Tutorial
 ```php
-use Azurre\Component\Logger;
-use Azurre\Component\Logger\Handler\File;
+use \Azurre\Component\Logger;
+use \Azurre\Component\Logger\Handler\File;
 
 $logger = new Logger();
 $logger->info('Simple Logger really is simple.');
@@ -39,8 +39,8 @@ That's it! Your application is logging! Log file will be "default.log".
 
 ### Extended Example
 ```php
-use Azurre\Component\Logger;
-use Azurre\Component\Logger\Handler\File;
+use \Azurre\Component\Logger;
+use \Azurre\Component\Logger\Handler\File;
 
 $logfile = '/var/log/events.log';
 $channel = 'billing';
@@ -91,7 +91,7 @@ By default all log levels are logged. The minimum log level can be changed in tw
 
 ```php
 use \Psr\Log\LogLevel;
-use Azurre\Component\Logger;
+use \Azurre\Component\Logger;
 
 // Optional constructor Parameter (Only error and above are logged [error, critical, alert, emergency])
 $logger = new Logger($channel, LogLevel::ERROR);
