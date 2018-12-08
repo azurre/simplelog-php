@@ -1,21 +1,14 @@
-SimpleLog
+Simple Logger PSR-3 logger
 =====================
 
-### Powerful PSR-3 logging. So easy, it's simple!
-
-SimpleLog is a powerful PSR-3 logger for PHP that is simple to use.
-
-Simplicity is achieved by providing great defaults. No options to configure! Yet flexible enough to meet most logging needs.
-And if your application's logging needs expand beyond what SimpleLog provides, since it implements PSR-3, you can drop in
-another great PSR-3 logger like [MonoLog](https://github.com/Seldaek/monolog) in its place when the time comes with minimal changes.
-
-It is actively under development with development (0.y.z) releases.
+Simple Logger is a powerful PSR-3 logger for PHP that is simple to use.
 
 Features
 --------
 
  * Power and Simplicity
  * PSR-3 logger interface
+ * Multiple handlers support
  * Multiple log level severities
  * Log channels
  * Process ID logging
@@ -30,32 +23,29 @@ Setup
 $ composer require azurre/php-simple-logger
 ```
 
-Composer will install SimpleLog inside your vendor folder. Then you can add the following to your
-.php files to use the library with Autoloading.
-
-```php
-require_once(__DIR__ . '/vendor/autoload.php');
-```
-
 Usage
 -----
 
 ### Simple 20-Second Getting-Started Tutorial
 ```php
-$logfile = '/path/to/logfile.log';
-$channel = 'events';
-$logger  = new SimpleLog\Logger($logfile, $channel);
+use Azurre\Component\Logger;
+use Azurre\Component\Logger\Handler\File;
 
-$logger->info('SimpleLog really is simple.');
+$logger = new Logger();
+$logger->info('Simple Logger really is simple.');
 ```
 
-That's it! Your application is logging!
+That's it! Your application is logging! Log file will be "default.log".
 
 ### Extended Example
 ```php
+use Azurre\Component\Logger;
+use Azurre\Component\Logger\Handler\File;
+
 $logfile = '/var/log/events.log';
 $channel = 'billing';
-$logger  = new SimpleLog\Logger($logfile, $channel);
+$logger  = new Logger($channel);
+$logger->setHandler(new File($logfile));
 
 $logger->info('Begin process that usually fails.', ['process' => 'invoicing', 'user' => $user]);
 
@@ -82,7 +72,7 @@ Log lines are easily readable and parsable. Log lines are always on a single lin
 
 ### Log Levels
 
-SimpleLog has eight log level severities based on [PSR Log Levels](http://www.php-fig.org/psr/psr-3/#psrlogloglevel).
+'Simple Logger has eight log level severities based on [PSR Log Levels](http://www.php-fig.org/psr/psr-3/#psrlogloglevel).
 
 ```php
 $logger->debug('Detailed information about the application run.');
@@ -100,17 +90,18 @@ By default all log levels are logged. The minimum log level can be changed in tw
  * Setter method at any time
 
 ```php
-use Psr\Log\LogLevel;
+use \Psr\Log\LogLevel;
+use Azurre\Component\Logger;
 
 // Optional constructor Parameter (Only error and above are logged [error, critical, alert, emergency])
-$logger = new SimpleLog\Logger($logfile, $channel, LogLevel::ERROR);
+$logger = new Logger($channel, LogLevel::ERROR);
 
 // Setter method (Only warning and above are logged)
 $logger->setLogLevel(LogLevel::WARNING);
 ```
 
 ### Contextual Data
-SimpleLog enables logging best practices to have general-use log messages with contextual support data to give context to the message.
+'Simple Logger enables logging best practices to have general-use log messages with contextual support data to give context to the message.
 
 The second argument to a log message is an associative array of key-value pairs that will log as a JSON string, serving as the contextual support data to the log message.
 
@@ -141,30 +132,10 @@ Channels can be set in two ways:
 ```php
 // Constructor Parameter
 $channel = 'router';
-$logger  = new SimpleLog\Logger($logfile, $channel);
+$logger  = new Logger($channel);
 
 // Setter method
 $logger->setChannel('database');
-```
-
-### Debug Features
-#### Logging to STDOUT
-When developing, you can turn on log output to the screen (STDOUT) as a convenience.
-
-```php
-$logger->setOutput(true);
-$logger->debug('This will get logged to STDOUT as well as the log file.');
-```
-
-#### Dummy Logger
-Suppose you need a logger to meet an injected dependency during a unit test, and you don't want it to actually log anything.
-You can set the log level to ```Logger::LOG_LEVEL_NONE``` which won't log at any level.
-
-```php
-use SimpleLog\Logger;
-
-$logger->setLogLevel(Logger::LOG_LEVEL_NONE);
-$logger->info('This will not log to a file.');
 ```
 
 Unit Tests
@@ -174,15 +145,3 @@ Unit Tests
 $ cd tests
 $ phpunit
 ```
-
-Standards
----------
-
-SimpleLog conforms to the following standards:
-
- * PSR-3 - Logger Interface (http://www.php-fig.org/psr/psr-3/)
-
-License
--------
-
-SimpleLog is licensed under the MIT License.

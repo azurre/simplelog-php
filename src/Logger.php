@@ -1,137 +1,117 @@
 <?php
+/**
+ * @author Alex Milenin
+ * @email  admin@azrr.info
+ * @date   08.12.2018
+ */
 
-namespace SimpleLog;
-
-use Psr\Log\LogLevel;
+namespace Azurre\Component;
 
 /**
- * Simple Logger
- * Powerful PSR-3 logging so easy it's simple!
- *
- * Implements PHP Standard Recommendation interface: PSR-3 \Psr\Log\LoggerInterface
- *
- * Log the following severities: debug, info, notice, warning, error, critical, alert, emergency.
- * Log format: YYYY-mm-dd HH:ii:ss.uuuuuu  [loglevel]  [channel]  [pid:##]  Log message content  {"Optional":"JSON Contextual Support Data"}  {"Optional":"Exception Data"}
- *
- * Standard usage - default options:
- *   $logger = new SimpleLog\Logger('logfile.log', 'channelname');
- *   $logger->info('Normal informational event happened.');
- *   $logger->error('Something bad happened.', ['key1' => 'value that gives context', 'key2' => 'some more context', 'exception' => $e]);
- *
- * Optional constructor option: Set default lowest log level (Example error and above):
- *   $logger = new SimpleLog\Logger('logfile.log', 'channelname', \Psr\Log\LogLevel::ERROR);
- *   $logger->error('This will get logged');
- *   $logger->info('This is below the minimum log level and will not get logged');
- *
- * To log an exception, set as data context array key 'exception'
- *   $logger->error('Something exceptional happened.', ['exception' => $e]);
- *
- * To set output to standard out (STDOUT) as well as a log file:
- *   $logger->setOutput(true);
- *
- * To change the channel after construction:
- *   $logger->setChannel('newname')
+ * Class Logger
  */
 class Logger implements \Psr\Log\LoggerInterface
 {
     /**
-     * File name and path of log file.
-     * @var string
-     */
-    private $log_file;
-
-    /**
      * Log channel--namespace for log lines.
      * Used to identify and correlate groups of similar log lines.
+     *
      * @var string
      */
-    private $channel;
+    protected $channel;
 
     /**
-     * Lowest log level to log.
+     * @var array
+     */
+    protected $handlers = [];
+
+    /**
+     * Lowest log level to log
+     *
      * @var int
      */
-    private $log_level;
+    protected $logLevel;
 
     /**
-     * Whether to log to standard out.
-     * @var bool
+     * Default channel
      */
-    private $stdout;
+    const DEFAULT_CHANNEL = 'default';
 
     /**
-     * Log fields separated by tabs to form a TSV (CSV with tabs).
-     */
-    const TAB = "\t";
-
-    /**
-     * Special minimum log level which will not log any log levels.
-     */
-    const LOG_LEVEL_NONE = 'none';
-
-    /**
-     * Log level hierachy
+     * Log level priority
      */
     protected static $levels = [
-        self::LOG_LEVEL_NONE => -1,
-        LogLevel::DEBUG      => 0,
-        LogLevel::INFO       => 1,
-        LogLevel::NOTICE     => 2,
-        LogLevel::WARNING    => 3,
-        LogLevel::ERROR      => 4,
-        LogLevel::CRITICAL   => 5,
-        LogLevel::ALERT      => 6,
-        LogLevel::EMERGENCY  => 7,
+        \Psr\Log\LogLevel::DEBUG     => 1,
+        \Psr\Log\LogLevel::INFO      => 2,
+        \Psr\Log\LogLevel::NOTICE    => 3,
+        \Psr\Log\LogLevel::WARNING   => 4,
+        \Psr\Log\LogLevel::ERROR     => 5,
+        \Psr\Log\LogLevel::CRITICAL  => 6,
+        \Psr\Log\LogLevel::ALERT     => 7,
+        \Psr\Log\LogLevel::EMERGENCY => 8
     ];
 
     /**
      * Logger constructor
      *
-     * @param string $log_file  File name and path of log file.
-     * @param string $channel   Logger channel associated with this logger.
-     * @param string $log_level (optional) Lowest log level to log.
+     * @param string $channel  Logger channel associated with this logger.
+     * @param string $logLevel (optional) Lowest log level to log.
      */
-    public function __construct($log_file, $channel, $log_level = LogLevel::DEBUG)
+    public function __construct($channel = null, $logLevel = \Psr\Log\LogLevel::DEBUG)
     {
-        $this->log_file = $log_file;
-        $this->channel = $channel;
-        $this->stdout = false;
-        $this->setLogLevel($log_level);
+        $this->channel = $channel ?: static::DEFAULT_CHANNEL;
+        $this->setLogLevel($logLevel);
     }
 
     /**
      * Set the lowest log level to log.
      *
-     * @param string $log_level
+     * @param string $logLevel
      */
-    public function setLogLevel($log_level)
+    public function setLogLevel($logLevel)
     {
-        if (!array_key_exists($log_level, self::$levels)) {
-            throw new \DomainException("Log level $log_level is not a valid log level. Must be one of (" . implode(', ', array_keys(self::$levels)) . ')');
+        if (!array_key_exists($logLevel, self::$levels)) {
+            throw new \RuntimeException("Log level {$logLevel} is not supported");
         }
 
-        $this->log_level = self::$levels[$log_level];
+        $this->logLevel = self::$levels[$logLevel];
     }
 
     /**
      * Set the log channel which identifies the log line.
      *
      * @param string $channel
+     * @return $this
      */
     public function setChannel($channel)
     {
         $this->channel = $channel;
+
+        return $this;
     }
 
     /**
-     * Set the standard out option on or off.
-     * If set to true, log lines will also be printed to standard out.
+     * Log a message.
+     * Generic log routine that all severity levels use to log an event.
      *
-     * @param bool $stdout
+     * @param string $level
+     * @param string $message Content of log event.
+     * @param array  $data    Potentially multidimensional associative array of support data that goes with the log event.
      */
-    public function setOutput($stdout)
+    public function log($level, $message = '', array $data = null)
     {
-        $this->stdout = $stdout;
+        if (!$this->logAtThisLevel($level)) {
+            return;
+        }
+        $handlers = $this->getHandlers();
+        if (empty($handlers)) {
+            $handlers[] = $handler = Logger\Handler\File::class;
+            $this->addHandler($handler);
+        }
+        /** @var Logger\Handler\HandlerInterface $handler */
+        foreach ($handlers as $handler) {
+            $handler->setLogger($this)->handle($this->channel, $level, $message, $data);
+        }
     }
 
     /**
@@ -140,14 +120,11 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
-     *
      * @throws \Exception
      */
     public function debug($message = '', array $data = null)
     {
-        if ($this->logAtThisLevel(LogLevel::DEBUG)) {
-            $this->log(LogLevel::DEBUG, $message, $data);
-        }
+        $this->log(\Psr\Log\LogLevel::DEBUG, $message, $data);
     }
 
     /**
@@ -159,9 +136,7 @@ class Logger implements \Psr\Log\LoggerInterface
      */
     public function info($message = '', array $data = null)
     {
-        if ($this->logAtThisLevel(LogLevel::INFO)) {
-            $this->log(LogLevel::INFO, $message, $data);
-        }
+        $this->log(\Psr\Log\LogLevel::INFO, $message, $data);
     }
 
     /**
@@ -170,14 +145,11 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
-     *
      * @throws \Exception
      */
     public function notice($message = '', array $data = null)
     {
-        if ($this->logAtThisLevel(LogLevel::NOTICE)) {
-            $this->log(LogLevel::NOTICE, $message, $data);
-        }
+        $this->log(\Psr\Log\LogLevel::NOTICE, $message, $data);
     }
 
     /**
@@ -187,14 +159,11 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
-     *
      * @throws \Exception
      */
     public function warning($message = '', array $data = null)
     {
-        if ($this->logAtThisLevel(LogLevel::WARNING)) {
-            $this->log(LogLevel::WARNING, $message, $data);
-        }
+        $this->log(\Psr\Log\LogLevel::WARNING, $message, $data);
     }
 
     /**
@@ -207,9 +176,7 @@ class Logger implements \Psr\Log\LoggerInterface
      */
     public function error($message = '', array $data = null)
     {
-        if ($this->logAtThisLevel(LogLevel::ERROR)) {
-            $this->log(LogLevel::ERROR, $message, $data);
-        }
+        $this->log(\Psr\Log\LogLevel::ERROR, $message, $data);
     }
 
     /**
@@ -218,14 +185,11 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
-     *
      * @throws \Exception
      */
     public function critical($message = '', array $data = null)
     {
-        if ($this->logAtThisLevel(LogLevel::CRITICAL)) {
-            $this->log(LogLevel::CRITICAL, $message, $data);
-        }
+        $this->log(\Psr\Log\LogLevel::CRITICAL, $message, $data);
     }
 
     /**
@@ -235,14 +199,11 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
-     *
      * @throws \Exception
      */
     public function alert($message = '', array $data = null)
     {
-        if ($this->logAtThisLevel(LogLevel::ALERT)) {
-            $this->log(LogLevel::ALERT, $message, $data);
-        }
+        $this->log(\Psr\Log\LogLevel::ALERT, $message, $data);
     }
 
     /**
@@ -252,140 +213,76 @@ class Logger implements \Psr\Log\LoggerInterface
      *
      * @param string $message Content of log event.
      * @param array  $data    Associative array of contextual support data that goes with the log event.
-     *
      * @throws \Exception
      */
     public function emergency($message = '', array $data = null)
     {
-        if ($this->logAtThisLevel(LogLevel::EMERGENCY)) {
-            $this->log(LogLevel::EMERGENCY, $message, $data);
-        }
+        $this->log(\Psr\Log\LogLevel::EMERGENCY, $message, $data);
     }
 
     /**
-     * Log a message.
-     * Generic log routine that all severity levels use to log an event.
-     *
-     * @param string $level
-     * @param string $message Content of log event.
-     * @param array  $data    Potentially multidimensional associative array of support data that goes with the log event.
-     *
+     * @param Object|string $handler
      */
-    public function log($level, $message = '', array $data = null)
+    public function setHandler($handler)
     {
-        try {
-            // Build log line
-            $time = $this->getTime();
-            $pid = getmypid();
-            list($exception, $data) = $this->handleException($data);
-            $dataString = $data ? json_encode($data, \JSON_UNESCAPED_SLASHES) : '{}';
-            $log_line = $this->formatLogLine($level, $pid, $message, $dataString, $exception);
+        $this->handlers = [];
+        $this->addHandler($handler);
+    }
 
-            // Log to file
-            $fh = fopen($this->log_file, 'a');
-            fwrite($fh, $log_line);
-            fclose($fh);
-
-            // Log to stdout if option set to do so.
-            if ($this->stdout) {
-                print($log_line);
-            }
-        } catch (\Throwable $e) {
-            throw new \RuntimeException("Could not open log file {$this->log_file} for writing to SimpleLog channel {$this->channel}!", 0, $e);
+    /**
+     * @param Object|string $handler
+     * @return $this
+     */
+    public function addHandler($handler)
+    {
+        if (\is_string($handler) && \class_exists($handler)) {
+            $handler = new $handler;
         }
+        if (!\is_object($handler) || !$handler instanceof Logger\Handler\HandlerInterface) {
+            throw new \RuntimeException('Handler must be an instance of HandlerInterface');
+        }
+        $this->handlers[] = $handler;
+
+        return $this;
     }
 
     /**
      * Determine if the logger should log at a certain log level.
      *
      * @param  string $level
-     *
      * @return bool   True if we log at this level; false otherwise.
      */
-    private function logAtThisLevel($level)
+    public function logAtThisLevel($level)
     {
-        return self::$levels[$level] >= $this->log_level;
+        return self::$levels[$level] >= $this->logLevel;
     }
 
     /**
-     * Handle an exception in the data context array.
-     * If an exception is included in the data context array, extract it.
-     *
-     * @param  array $data
-     *
-     * @return array  [exception, data (without exception)]
+     * @return Logger\Handler\HandlerInterface[]
      */
-    private function handleException(array $data = null)
+    public function getHandlers()
     {
-        if (isset($data['exception']) && $data['exception'] instanceof \Throwable) {
-            $exception = $data['exception'];
-            $exception_data = $this->buildExceptionData($exception);
-            unset($data['exception']);
-        } else {
-            $exception_data = '{}';
+        return $this->handlers;
+    }
+
+    /**
+     * @return int
+     */
+    public function getPid()
+    {
+        return getmypid();
+    }
+
+    /**
+     * @param string $level
+     * @return array
+     */
+    public static function getLevels($level = null)
+    {
+        if ($level) {
+            return isset(static::$levels[$level]) ? static::$levels[$level] : null;
         }
 
-        return [$exception_data, $data];
-    }
-
-    /**
-     * Build the exception log data.
-     *
-     * @param  \Throwable $e
-     *
-     * @return string JSON {message, code, file, line, trace}
-     */
-    private function buildExceptionData(\Throwable $e)
-    {
-        return json_encode(
-            [
-                'message' => $e->getMessage(),
-                'code'    => $e->getCode(),
-                'file'    => $e->getFile(),
-                'line'    => $e->getLine(),
-                'trace'   => $e->getTrace()
-            ],
-            \JSON_UNESCAPED_SLASHES
-        );
-    }
-
-    /**
-     * Format the log line.
-     * YYYY-mm-dd HH:ii:ss.uuuuuu  [loglevel]  [channel]  [pid:##]  Log message content  {"Optional":"JSON Contextual Support Data"}  {"Optional":"Exception Data"}
-     *
-     * @param  string $level
-     * @param  int    $pid
-     * @param  string $message
-     * @param  string $data
-     * @param  string $exception_data
-     *
-     * @return string
-     */
-    private function formatLogLine($level, $pid, $message, $data, $exception_data)
-    {
-        return
-            $this->getTime() . self::TAB .
-            "[$level]" . self::TAB .
-            "[{$this->channel}]" . self::TAB .
-            "[pid:$pid]" . self::TAB .
-            str_replace(\PHP_EOL, '   ', trim($message)) . self::TAB .
-            str_replace(\PHP_EOL, '   ', $data) . self::TAB .
-            str_replace(\PHP_EOL, '   ', $exception_data) . \PHP_EOL;
-    }
-
-    /**
-     * Get current date time.
-     * Format: YYYY-mm-dd HH:ii:ss.uuuuuu
-     * Microsecond precision.
-     *
-     * @return string Date time
-     */
-    private function getTime()
-    {
-        $microtime = microtime(true);
-        $microtime_formated = sprintf("%06d", ($microtime - floor($microtime)) * 1000000);
-        $dt = new \DateTime(date('Y-m-d H:i:s.' . $microtime_formated, $microtime));
-
-        return $dt->format('Y-m-d H:i:s.u');
+        return static::$levels;
     }
 }

@@ -1,26 +1,19 @@
 {
   "name": "azurre/php-simple-logger",
   "type": "library",
-  "description": "Powerful PSR-3 logging. So easy, it's simple.",
+  "description": "Simple PSR-3 logger",
   "keywords": ["log", "logging", "psr-3", "logger"],
-  "homepage": "https://github.com/azurre/simplelog-php",
+  "homepage": "https://github.com/azurre/php-simple-logger/",
+  "version": "1.0.0",
   "require": {
-    "psr/log": "1.0.*"
+    "psr/log": "^1.0"
   },
   "require-dev": {
       "satooshi/php-coveralls": "^2.0",
       "squizlabs/php_codesniffer": "2.*"
   },
   "autoload": {
-    "psr-4": {"SimpleLog\\": "src/"}
+    "psr-4": {"Azurre\\Component\\": "src/"}
   },
-  "authors": [
-    {
-      "name": "Mark Rogoyski",
-      "email": "mark@rogoyski.com",
-      "homepage": "https://github.com/markrogoyski",
-      "role": "Developer"
-    }
-  ],
   "license": "MIT"
 }

@@ -1,8 +1,7 @@
 <?php
-
-namespace SimpleLog;
-
+use Azurre\Component\Logger;
 use Psr\Log\LogLevel;
+use Azurre\Component\Logger\Handler\File;
 
 /**
  * Unit tests for SimpleLog\Logger.
@@ -11,20 +10,20 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Log file
+     *
      * @var string
      */
     private $logfile;
 
     /**
-     * @var \SimpleLog\Logger
+     * @var \Azurre\Component\Logger $logger
      */
     private $logger;
 
+    const TEST_CHANNEL = 'unittest';
+    const TEST_MESSAGE = 'Log message goes here.';
 
-    const TEST_CHANNEL      = 'unittest';
-    const TEST_MESSAGE      = 'Log message goes here.';
-
-    const TEST_LOG_REGEX    = "/^
+    const TEST_LOG_REGEX = "/^
         \d{4}-\d{2}-\d{2} [ ] \d{2}:\d{2}:\d{2}[.]\d{6}    # Timestamp (YYYY-mm-dd HH:ii:ss.uuuuuu)
         \s
         \[\w+\]                                            # [loglevel]
@@ -50,11 +49,13 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
         if (file_exists($this->logfile)) {
             unlink($this->logfile);
         }
-        $this->logger = new Logger($this->logfile, self::TEST_CHANNEL);
+        $this->logger = new Logger(self::TEST_CHANNEL);
+        $this->logger->setHandler(new File($this->logfile));
     }
 
     /**
      * Clean up test by removing temporary log file.
+     *
      * @return void
      */
     public function tearDown()
@@ -86,52 +87,46 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
      */
     public function testConstructorSetsProperties()
     {
-        $log_file_property  = new \ReflectionProperty(Logger::class, 'log_file');
-        $channel_property   = new \ReflectionProperty(Logger::class, 'channel');
-        $stdout_property    = new \ReflectionProperty(Logger::class, 'stdout');
-        $log_level_property = new \ReflectionProperty(Logger::class, 'log_level');
+        $channelProperty = new \ReflectionProperty(Logger::class, 'channel');
+        $logLevelProperty = new \ReflectionProperty(Logger::class, 'logLevel');
 
-        $log_file_property->setAccessible(true);
-        $channel_property->setAccessible(true);
-        $stdout_property->setAccessible(true);
-        $log_level_property->setAccessible(true);
+        $channelProperty->setAccessible(true);
+        $logLevelProperty->setAccessible(true);
 
-        $this->assertEquals($this->logfile, $log_file_property->getValue($this->logger));
-        $this->assertEquals(self::TEST_CHANNEL, $channel_property->getValue($this->logger));
-        $this->assertFalse($stdout_property->getValue($this->logger));
-        $this->assertEquals(Logger::LEVELS[LogLevel::DEBUG], $log_level_property->getValue($this->logger));
+        $this->assertEquals(self::TEST_CHANNEL, $channelProperty->getValue($this->logger));
+        $this->assertEquals(Logger::getLevels(LogLevel::DEBUG), $logLevelProperty->getValue($this->logger));
     }
 
     /**
      * @testCase     setLogLevel sets the correct log level.
      * @dataProvider dataProviderForSetLogLevel
-     * @param string $log_level
-     * @param int    $log_level_code
-     *
+     * @param string $logLevel
+     * @param int    $logLevelCode
      * @throws \ReflectionException
      */
-    public function testSetLogLevelUsingConstants($log_level, $log_level_code)
+    public function testSetLogLevelUsingConstants($logLevel, $logLevelCode)
     {
-        $this->logger->setLogLevel($log_level);
+        $this->logger->setLogLevel($logLevel);
 
-        $log_level_property = new \ReflectionProperty(Logger::class, 'log_level');
-        $log_level_property->setAccessible(true);
+        $logLevelProperty = new \ReflectionProperty(Logger::class, 'logLevel');
+        $logLevelProperty->setAccessible(true);
 
-        $this->assertEquals($log_level_code, $log_level_property->getValue($this->logger));
+        $this->assertEquals($logLevelCode, $logLevelProperty->getValue($this->logger));
     }
 
     public function dataProviderForSetLogLevel()
     {
+        $levels = Logger::getLevels();
+
         return [
-            [Logger::LOG_LEVEL_NONE, Logger::LEVELS[Logger::LOG_LEVEL_NONE]],
-            [LogLevel::DEBUG,        Logger::LEVELS[LogLevel::DEBUG]],
-            [LogLevel::INFO,         Logger::LEVELS[LogLevel::INFO]],
-            [LogLevel::NOTICE,       Logger::LEVELS[LogLevel::NOTICE]],
-            [LogLevel::WARNING,      Logger::LEVELS[LogLevel::WARNING]],
-            [LogLevel::ERROR,        Logger::LEVELS[LogLevel::ERROR]],
-            [LogLevel::CRITICAL,     Logger::LEVELS[LogLevel::CRITICAL]],
-            [LogLevel::ALERT,        Logger::LEVELS[LogLevel::ALERT]],
-            [LogLevel::EMERGENCY,    Logger::LEVELS[LogLevel::EMERGENCY]],
+            [LogLevel::DEBUG, $levels[LogLevel::DEBUG]],
+            [LogLevel::INFO, $levels[LogLevel::INFO]],
+            [LogLevel::NOTICE, $levels[LogLevel::NOTICE]],
+            [LogLevel::WARNING, $levels[LogLevel::WARNING]],
+            [LogLevel::ERROR, $levels[LogLevel::ERROR]],
+            [LogLevel::CRITICAL, $levels[LogLevel::CRITICAL]],
+            [LogLevel::ALERT, $levels[LogLevel::ALERT]],
+            [LogLevel::EMERGENCY, $levels[LogLevel::EMERGENCY]],
         ];
     }
 
@@ -140,7 +135,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
      */
     public function testSetLogLevelWithBadLevelException()
     {
-        $this->setExpectedException(\DomainException::class);
+        $this->setExpectedException(\RuntimeException::class);
         $this->logger->setLogLevel('ThisLogLevelDoesNotExist');
     }
 
@@ -148,20 +143,21 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
     /**
      * @testCase     setChannel sets the channel property.
      * @dataProvider dataProviderForSetChannel
-     *
      * @param        string $channel
-     *
      * @throws \ReflectionException
      */
     public function testSetChannel($channel)
     {
-        $channel_property = new \ReflectionProperty(Logger::class, 'channel');
-        $channel_property->setAccessible(true);
+        $channelProperty = new \ReflectionProperty(Logger::class, 'channel');
+        $channelProperty->setAccessible(true);
 
         $this->logger->setChannel($channel);
-        $this->assertEquals($channel, $channel_property->getValue($this->logger));
+        $this->assertEquals($channel, $channelProperty->getValue($this->logger));
     }
 
+    /**
+     * @return array
+     */
     public function dataProviderForSetChannel()
     {
         return [
@@ -178,11 +174,13 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
      */
     public function testSetOutput($output)
     {
-        $stdout_property = new \ReflectionProperty(Logger::class, 'stdout');
-        $stdout_property->setAccessible(true);
+        $stdoutProperty = new \ReflectionProperty(\Azurre\Component\Logger\Handler\File::class, 'stdout');
+        $stdoutProperty->setAccessible(true);
 
-        $this->logger->setOutput($output);
-        $this->assertEquals($output, $stdout_property->getValue($this->logger));
+        $handlers = $this->logger->getHandlers();
+        $handler = reset($handlers);
+        $handler->setStdout($output);
+        $this->assertEquals($output, $stdoutProperty->getValue($handler));
     }
 
     /**
@@ -204,11 +202,14 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
     public function testLogging($logLevel)
     {
         $this->logger->$logLevel(self::TEST_MESSAGE);
-        $log_line = trim(file_get_contents($this->logfile));
-        $this->assertTrue((bool) preg_match(self::TEST_LOG_REGEX, $log_line));
-        $this->assertTrue((bool) preg_match("/\[$logLevel\]/", $log_line));
+        $logLine = trim(file_get_contents($this->logfile));
+        $this->assertTrue((bool)preg_match(self::TEST_LOG_REGEX, $logLine));
+        $this->assertTrue((bool)preg_match("/\[$logLevel\]/", $logLine));
     }
 
+    /**
+     * @return array
+     */
     public function dataProviderForLogging()
     {
         return [
@@ -230,8 +231,8 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
     public function testDataContext()
     {
         $this->logger->info(self::TEST_MESSAGE, ['key1' => 'value1', 'key2' => 6]);
-        $log_line = trim(file_get_contents($this->logfile));
-        $this->assertTrue((bool) preg_match('/\s{"key1":"value1","key2":6}\s/', $log_line));
+        $logLine = trim(file_get_contents($this->logfile));
+        $this->assertTrue((bool)preg_match('/\s{"key1":"value1","key2":6}\s/', $logLine));
     }
 
     /**
@@ -244,13 +245,13 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
             throw new \Exception('Exception123');
         } catch (\Exception $e) {
             $this->logger->error('Testing the Exception', ['exception' => $e]);
-            $log_line = trim(file_get_contents($this->logfile));
-            $this->assertTrue((bool) preg_match('/Testing the Exception/', $log_line));
-            $this->assertTrue((bool) preg_match('/Exception123/', $log_line));
-            $this->assertTrue((bool) preg_match('/code/', $log_line));
-            $this->assertTrue((bool) preg_match('/file/', $log_line));
-            $this->assertTrue((bool) preg_match('/line/', $log_line));
-            $this->assertTrue((bool) preg_match('/trace/', $log_line));
+            $logLine = trim(file_get_contents($this->logfile));
+            $this->assertTrue(false !== strpos($logLine, 'Testing the Exception'));
+            $this->assertTrue(false !== strpos($logLine, 'Exception123'));
+            $this->assertTrue(false !== strpos($logLine, 'code'));
+            $this->assertTrue(false !== strpos($logLine, 'file'));
+            $this->assertTrue(false !== strpos($logLine, 'line'));
+            $this->assertTrue(false !== strpos($logLine, 'trace'));
         }
     }
 
@@ -261,8 +262,8 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
     public function testLogMessageIsOneLineEvenThoughItHasNewLineCharacters()
     {
         $this->logger->info("This message has a new line\nAnd another\n", ['key' => 'value']);
-        $log_lines = file($this->logfile);
-        $this->assertEquals(1, count($log_lines));
+        $logLines = file($this->logfile);
+        $this->assertCount(1, $logLines);
     }
 
     /**
@@ -272,8 +273,8 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
     public function testLogMessageIsOneLineEvenThoughItHasNewLineCharactersInData()
     {
         $this->logger->info('Log message', ['key' => "Value\nwith\new\lines\n"]);
-        $log_lines = file($this->logfile);
-        $this->assertEquals(1, count($log_lines));
+        $logLines = file($this->logfile);
+        $this->assertCount(1, $logLines);
     }
 
     /**
@@ -282,9 +283,10 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
      */
     public function testLogMessageIsOneLineEvenThoughItHasNewLineCharactersInException()
     {
-        $this->logger->info('Log message', ['key' => 'value', 'exception' => new \Exception("This\nhas\newlines\nin\nit")]);
-        $log_lines = file($this->logfile);
-        $this->assertEquals(1, count($log_lines));
+        $this->logger->info('Log message',
+            ['key' => 'value', 'exception' => new \Exception("This\nhas\newlines\nin\nit")]);
+        $logLines = file($this->logfile);
+        $this->assertCount(1, $logLines);
     }
 
     /**
@@ -305,8 +307,8 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
         $this->logger->alert('This will be logged.');
         $this->logger->emergency('This will be logged.');
 
-        $log_lines = file($this->logfile);
-        $this->assertEquals(4, count($log_lines));
+        $logLines = file($this->logfile);
+        $this->assertCount(4, $logLines);
     }
 
     /**
@@ -321,10 +323,10 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
         $this->logger->info('This will not be logged.');
         $this->logger->notice('This will not be logged.');
         $this->logger->warning('This will not be logged.');
-        $this->assertFalse(file_exists($this->logfile));
+        $this->assertFileNotExists($this->logfile);
 
         $this->logger->error('This will be logged.');
-        $this->assertTrue(file_exists($this->logfile));
+        $this->assertFileExists($this->logfile);
     }
 
     /**
@@ -333,9 +335,11 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
      */
     public function testLogExceptionCannotOpenFileForWriting()
     {
-        $bad_logger = new Logger('/this/file/should/not/exist/on/any/system/if/it/does/well/oh/well/this/test/will/fail/logfile123.loglog.log', self::TEST_CHANNEL);
+        $file = '/this/file/should/not/exist/on/any/system/if/it/does/well/oh/well/this/test/will/fail/logfile123.loglog.log';
+        $badLogger = new Logger(self::TEST_CHANNEL);
+        $badLogger->setHandler(new File($file));
         $this->setExpectedException(\RuntimeException::class);
-        $bad_logger->info('This is not going to work, hence the test for the exception!');
+        $badLogger->info('This is not going to work, hence the test for the exception!');
     }
 
     /**
@@ -344,22 +348,10 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
      */
     public function testLoggingToStdOut()
     {
-        $this->logger->setOutput(true);
-        $this->expectOutputRegEx('/^\d{4}-\d{2}-\d{2} [ ] \d{2}:\d{2}:\d{2}[.]\d{6} \s \[\w+\] \s \[\w+\] \s \[pid:\d+\] \s Test Message \s {.*} \s {.*}/x');
+        $handlers = $this->logger->getHandlers();
+        $handler = reset($handlers);
+        $handler->setStdout(true);
+        $this->expectOutputRegex('/^\d{4}-\d{2}-\d{2} [ ] \d{2}:\d{2}:\d{2}[.]\d{6} \s \[\w+\] \s \[\w+\] \s \[pid:\d+\] \s Test Message \s {.*} \s {.*}/x');
         $this->logger->info('TestMessage');
-    }
-
-    /**
-     * @testCase Time should be in YYYY-MM-DD HH:mm:SS.uuuuuu format.
-     * @throws \ReflectionException
-     */
-    public function testGetTime()
-    {
-        $reflection = new \ReflectionClass($this->logger);
-        $method     = $reflection->getMethod('getTime');
-        $method->setAccessible(true);
-
-        $time = $method->invoke($this->logger);
-        $this->assertRegExp('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[.]\d{6}$/', $time);
     }
 }
