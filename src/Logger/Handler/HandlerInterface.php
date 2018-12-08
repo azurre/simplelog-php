@@ -13,10 +13,10 @@ namespace Azurre\Component\Logger\Handler;
 interface HandlerInterface
 {
     /**
-     * @param string     $channel
-     * @param string|int $level
-     * @param string     $message
-     * @param array      $data
+     * @param string $channel
+     * @param string $level
+     * @param string $message
+     * @param array  $data
      * @return $this
      */
     public function handle($channel, $level, $message = '', array $data = null);

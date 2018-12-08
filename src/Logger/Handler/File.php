@@ -49,21 +49,19 @@ class File implements HandlerInterface
      */
     public function handle($channel, $level, $message = '', array $data = null)
     {
-        try {
-            $pid = getmypid();
-            list($exception, $data) = $this->handleException($data);
-            $dataString = $data ? json_encode($data, \JSON_UNESCAPED_SLASHES) : '{}';
-            $logLine = $this->formatLogLine($channel, $level, $pid, $message, $dataString, $exception);
+        $pid = getmypid();
+        list($exception, $data) = $this->handleException($data);
+        $dataString = $data ? json_encode($data, \JSON_UNESCAPED_SLASHES) : '{}';
+        $logLine = $this->formatLogLine($channel, $level, $pid, $message, $dataString, $exception);
 
-            file_put_contents($this->logFile, $logLine, FILE_APPEND);
+        $res = @file_put_contents($this->logFile, $logLine, FILE_APPEND);
+        if ($res === false) {
+            throw new \RuntimeException("Cannot write to {$this->logFile}");
+        }
 
-            // Log to stdout if option set to do so.
-            if ($this->stdout) {
-                print($logLine);
-            }
-        } catch (\Throwable $e) {
-            throw new \RuntimeException("Could not open log file {$this->logFile} for writing to SimpleLog channel {$channel}!",
-                0, $e);
+        // Log to stdout if option set to do so.
+        if ($this->stdout) {
+            print($logLine);
         }
     }
 
@@ -74,7 +72,7 @@ class File implements HandlerInterface
      * @param  array $data
      * @return array  [exception, data (without exception)]
      */
-    private function handleException(array $data = null)
+    protected function handleException(array $data = null)
     {
         if (isset($data['exception']) && $data['exception'] instanceof \Throwable) {
             $exception = $data['exception'];
@@ -93,7 +91,7 @@ class File implements HandlerInterface
      * @param  \Throwable $e
      * @return string JSON {message, code, file, line, trace}
      */
-    private function buildExceptionData(\Throwable $e)
+    protected function buildExceptionData(\Throwable $e)
     {
         return json_encode(
             [
@@ -131,9 +129,9 @@ class File implements HandlerInterface
             "[{$level}]" . self::TAB .
             "[{$channel}]" . self::TAB .
             "[pid:{$pid}]" . self::TAB .
-            str_replace(["\r\n","\n","\r"], '\n', trim($message)) . self::TAB .
-            str_replace(["\r\n","\n","\r"], '\n', $data) . self::TAB .
-            str_replace(["\r\n","\n","\r"], '\n', $exceptionData) . \PHP_EOL;
+            str_replace(["\r\n", "\n", "\r"], '\n', trim($message)) . self::TAB .
+            str_replace(["\r\n", "\n", "\r"], '\n', $data) . self::TAB .
+            str_replace(["\r\n", "\n", "\r"], '\n', $exceptionData) . \PHP_EOL;
     }
 
     /**
@@ -159,7 +157,7 @@ class File implements HandlerInterface
      * @param bool $stdout
      * @return $this
      */
-    public function setStdout(bool $stdout)
+    public function setStdout($stdout)
     {
         $this->stdout = $stdout;
 
