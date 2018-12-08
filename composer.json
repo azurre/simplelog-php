@@ -4,7 +4,7 @@
   "description": "Simple PSR-3 logger",
   "keywords": ["log", "logging", "psr-3", "logger"],
   "homepage": "https://github.com/azurre/php-simple-logger/",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "require": {
     "psr/log": "^1.0"
   },
