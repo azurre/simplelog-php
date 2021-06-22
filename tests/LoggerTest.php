@@ -94,7 +94,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
         $logLevelProperty->setAccessible(true);
 
         $this->assertEquals(self::TEST_CHANNEL, $channelProperty->getValue($this->logger));
-        $this->assertEquals(Logger::getLevels(LogLevel::DEBUG), $logLevelProperty->getValue($this->logger));
+        $this->assertEquals(Logger::LOG_LEVEL_PRIORITY[LogLevel::DEBUG], $logLevelProperty->getValue($this->logger));
     }
 
     /**
@@ -116,7 +116,7 @@ class LoggerTest extends \PHPUnit_Framework_TestCase
 
     public function dataProviderForSetLogLevel()
     {
-        $levels = Logger::getLevels();
+        $levels = Logger::LOG_LEVEL_PRIORITY;
 
         return [
             [LogLevel::DEBUG, $levels[LogLevel::DEBUG]],

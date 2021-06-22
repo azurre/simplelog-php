@@ -2,16 +2,22 @@
 /**
  * @author Alex Milenin
  * @email  admin@azrr.info
- * @date   08.12.2018
+ * @copyright Copyright (c)Alex Milenin (https://azrr.info/)
  */
 
 namespace Azurre\Component;
+
+use Azurre\Component\Logger\Handler\HandlerInterface;
+use Psr\Log\LoggerTrait;
+use Psr\Log\LogLevel;
 
 /**
  * Class Logger
  */
 class Logger implements \Psr\Log\LoggerInterface
 {
+    use LoggerTrait;
+
     /**
      * Log channel--namespace for log lines.
      * Used to identify and correlate groups of similar log lines.
@@ -21,34 +27,24 @@ class Logger implements \Psr\Log\LoggerInterface
     protected $channel;
 
     /**
-     * @var array
+     * @var HandlerInterface[]
      */
     protected $handlers = [];
 
-    /**
-     * Lowest log level to log
-     *
-     * @var int
-     */
+    /** @var int Lowest log level to log */
     protected $logLevel;
 
-    /**
-     * Default channel
-     */
     const DEFAULT_CHANNEL = 'default';
 
-    /**
-     * Log level priority
-     */
-    protected static $levels = [
-        \Psr\Log\LogLevel::DEBUG     => 1,
-        \Psr\Log\LogLevel::INFO      => 2,
-        \Psr\Log\LogLevel::NOTICE    => 3,
-        \Psr\Log\LogLevel::WARNING   => 4,
-        \Psr\Log\LogLevel::ERROR     => 5,
-        \Psr\Log\LogLevel::CRITICAL  => 6,
-        \Psr\Log\LogLevel::ALERT     => 7,
-        \Psr\Log\LogLevel::EMERGENCY => 8
+    const LOG_LEVEL_PRIORITY = [
+        LogLevel::DEBUG     => 1,
+        LogLevel::INFO      => 2,
+        LogLevel::NOTICE    => 3,
+        LogLevel::WARNING   => 4,
+        LogLevel::ERROR     => 5,
+        LogLevel::CRITICAL  => 6,
+        LogLevel::ALERT     => 7,
+        LogLevel::EMERGENCY => 8
     ];
 
     /**
@@ -57,7 +53,7 @@ class Logger implements \Psr\Log\LoggerInterface
      * @param string $channel  Logger channel associated with this logger.
      * @param string $logLevel (optional) Lowest log level to log.
      */
-    public function __construct($channel = null, $logLevel = \Psr\Log\LogLevel::DEBUG)
+    public function __construct($channel = null, $logLevel = LogLevel::DEBUG)
     {
         $this->channel = $channel ?: static::DEFAULT_CHANNEL;
         $this->setLogLevel($logLevel);
@@ -70,11 +66,11 @@ class Logger implements \Psr\Log\LoggerInterface
      */
     public function setLogLevel($logLevel)
     {
-        if (!array_key_exists($logLevel, self::$levels)) {
-            throw new \RuntimeException("Log level {$logLevel} is not supported");
+        if (!array_key_exists($logLevel, static::LOG_LEVEL_PRIORITY)) {
+            throw new \RuntimeException("Log level $logLevel is not supported");
         }
 
-        $this->logLevel = self::$levels[$logLevel];
+        $this->logLevel = static::LOG_LEVEL_PRIORITY[$logLevel];
     }
 
     /**
@@ -105,123 +101,16 @@ class Logger implements \Psr\Log\LoggerInterface
         }
         $handlers = $this->getHandlers();
         if (empty($handlers)) {
-            $handlers[] = $handler = Logger\Handler\File::class;
-            $this->addHandler($handler);
+            $handlers[] = new Logger\Handler\Stdout;
         }
         /** @var Logger\Handler\HandlerInterface $handler */
         foreach ($handlers as $handler) {
-            $handler->setLogger($this)->handle($this->channel, $level, $message, $data);
+            $handler->handle($this->channel, $level, $message, $data);
         }
     }
 
     /**
-     * Log a debug message.
-     * Fine-grained informational events that are most useful to debug an application.
-     *
-     * @param string $message Content of log event.
-     * @param array  $data    Associative array of contextual support data that goes with the log event.
-     * @throws \Exception
-     */
-    public function debug($message = '', array $data = null)
-    {
-        $this->log(\Psr\Log\LogLevel::DEBUG, $message, $data);
-    }
-
-    /**
-     * Log an info message.
-     * Interesting events and informational messages that highlight the progress of the application at coarse-grained level.
-     *
-     * @param string $message Content of log event.
-     * @param array  $data    Associative array of contextual support data that goes with the log event.
-     */
-    public function info($message = '', array $data = null)
-    {
-        $this->log(\Psr\Log\LogLevel::INFO, $message, $data);
-    }
-
-    /**
-     * Log an notice message.
-     * Normal but significant events.
-     *
-     * @param string $message Content of log event.
-     * @param array  $data    Associative array of contextual support data that goes with the log event.
-     * @throws \Exception
-     */
-    public function notice($message = '', array $data = null)
-    {
-        $this->log(\Psr\Log\LogLevel::NOTICE, $message, $data);
-    }
-
-    /**
-     * Log a warning message.
-     * Exceptional occurrences that are not errors--undesirable things that are not necessarily wrong.
-     * Potentially harmful situations which still allow the application to continue running.
-     *
-     * @param string $message Content of log event.
-     * @param array  $data    Associative array of contextual support data that goes with the log event.
-     * @throws \Exception
-     */
-    public function warning($message = '', array $data = null)
-    {
-        $this->log(\Psr\Log\LogLevel::WARNING, $message, $data);
-    }
-
-    /**
-     * Log an error message.
-     * Error events that might still allow the application to continue running.
-     * Runtime errors that do not require immediate action but should typically be logged and monitored.
-     *
-     * @param string $message Content of log event.
-     * @param array  $data    Associative array of contextual support data that goes with the log event.
-     */
-    public function error($message = '', array $data = null)
-    {
-        $this->log(\Psr\Log\LogLevel::ERROR, $message, $data);
-    }
-
-    /**
-     * Log a critical condition.
-     * Application components being unavailable, unexpected exceptions, etc.
-     *
-     * @param string $message Content of log event.
-     * @param array  $data    Associative array of contextual support data that goes with the log event.
-     * @throws \Exception
-     */
-    public function critical($message = '', array $data = null)
-    {
-        $this->log(\Psr\Log\LogLevel::CRITICAL, $message, $data);
-    }
-
-    /**
-     * Log an alert.
-     * This should trigger an email or SMS alert and wake you up.
-     * Example: Entire site down, database unavailable, etc.
-     *
-     * @param string $message Content of log event.
-     * @param array  $data    Associative array of contextual support data that goes with the log event.
-     * @throws \Exception
-     */
-    public function alert($message = '', array $data = null)
-    {
-        $this->log(\Psr\Log\LogLevel::ALERT, $message, $data);
-    }
-
-    /**
-     * Log an emergency.
-     * System is unsable.
-     * This should trigger an email or SMS alert and wake you up.
-     *
-     * @param string $message Content of log event.
-     * @param array  $data    Associative array of contextual support data that goes with the log event.
-     * @throws \Exception
-     */
-    public function emergency($message = '', array $data = null)
-    {
-        $this->log(\Psr\Log\LogLevel::EMERGENCY, $message, $data);
-    }
-
-    /**
-     * @param Object|string $handler
+     * @param HandlerInterface|string $handler
      */
     public function setHandler($handler)
     {
@@ -230,7 +119,7 @@ class Logger implements \Psr\Log\LoggerInterface
     }
 
     /**
-     * @param Object|string $handler
+     * @param HandlerInterface|string $handler
      * @return $this
      */
     public function addHandler($handler)
@@ -238,9 +127,10 @@ class Logger implements \Psr\Log\LoggerInterface
         if (\is_string($handler) && \class_exists($handler)) {
             $handler = new $handler;
         }
-        if (!\is_object($handler) || !$handler instanceof Logger\Handler\HandlerInterface) {
-            throw new \RuntimeException('Handler must be an instance of HandlerInterface');
+        if (!$handler instanceof Logger\Handler\HandlerInterface) {
+            throw new \RuntimeException('Handler must be an instance of ' . HandlerInterface::class);
         }
+        $handler->setLogger($this);
         $this->handlers[] = $handler;
 
         return $this;
@@ -254,7 +144,7 @@ class Logger implements \Psr\Log\LoggerInterface
      */
     public function logAtThisLevel($level)
     {
-        return self::$levels[$level] >= $this->logLevel;
+        return static::LOG_LEVEL_PRIORITY[$level] >= $this->logLevel;
     }
 
     /**
@@ -271,18 +161,5 @@ class Logger implements \Psr\Log\LoggerInterface
     public function getPid()
     {
         return getmypid();
-    }
-
-    /**
-     * @param string $level
-     * @return array
-     */
-    public static function getLevels($level = null)
-    {
-        if ($level) {
-            return isset(static::$levels[$level]) ? static::$levels[$level] : null;
-        }
-
-        return static::$levels;
     }
 }

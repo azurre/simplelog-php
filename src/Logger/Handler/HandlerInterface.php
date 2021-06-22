@@ -2,15 +2,15 @@
 /**
  * @author Alex Milenin
  * @email  admin@azrr.info
- * @date   08.12.2018
+ * @copyright Copyright (c)Alex Milenin (https://azrr.info/)
  */
 
 namespace Azurre\Component\Logger\Handler;
 
 /**
- * File handler interface
+ * Logs handler interface
  */
-interface HandlerInterface
+interface HandlerInterface extends \Psr\Log\LoggerAwareInterface
 {
     /**
      * @param string $channel
@@ -20,15 +20,4 @@ interface HandlerInterface
      * @return $this
      */
     public function handle($channel, $level, $message = '', array $data = null);
-
-    /**
-     * @return \Psr\Log\LoggerInterface
-     */
-    public function getLogger();
-
-    /**
-     * @param \Psr\Log\LoggerInterface $logger
-     * @return $this
-     */
-    public function setLogger(\Psr\Log\LoggerInterface $logger);
 }
