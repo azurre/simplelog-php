@@ -18,9 +18,8 @@ trait HandleExceptionTrait
      */
     protected function handleException(array $data = null)
     {
-        if (isset($data['exception']) && $data['exception'] instanceof \Throwable) {
-            $exception = $data['exception'];
-            $exception_data = $this->buildExceptionData($exception);
+        if (isset($data['exception']) && $data['exception'] instanceof \Exception) {
+            $exception_data = $this->buildExceptionData($data['exception']);
             unset($data['exception']);
         } else {
             $exception_data = '{}';
@@ -32,10 +31,10 @@ trait HandleExceptionTrait
     /**
      * Build the exception log data.
      *
-     * @param  \Throwable $e
+     * @param  \Exception $e
      * @return string JSON {message, code, file, line, trace}
      */
-    protected function buildExceptionData(\Throwable $e)
+    protected function buildExceptionData(\Exception $e)
     {
         return json_encode(
             [
